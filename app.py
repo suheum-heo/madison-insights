@@ -5,10 +5,10 @@ Run: streamlit run app.py
 
 from pathlib import Path
 
+import duckdb
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import psycopg2
 import streamlit as st
 
 st.set_page_config(
@@ -17,8 +17,17 @@ st.set_page_config(
     layout="wide",
 )
 
-DB_URL = "dbname=madison_analysis"
+DATA   = Path(__file__).parent / "data"
 CHARTS = Path(__file__).parent / "charts"
+
+
+@st.cache_resource
+def get_conn() -> duckdb.DuckDBPyConnection:
+    conn = duckdb.connect()
+    conn.execute(f"CREATE OR REPLACE VIEW permits_bps_monthly AS SELECT * FROM read_parquet('{DATA}/permits.parquet')")
+    conn.execute(f"CREATE OR REPLACE VIEW census_tracts        AS SELECT * FROM read_parquet('{DATA}/tracts.parquet')")
+    conn.execute(f"CREATE OR REPLACE VIEW crashes              AS SELECT * FROM read_parquet('{DATA}/crashes.parquet')")
+    return conn
 
 MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun",
                "Jul","Aug","Sep","Oct","Nov","Dec"]
@@ -27,43 +36,33 @@ DOW_NAMES   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
 
 @st.cache_data
 def run_query(sql: str) -> pd.DataFrame:
-    conn = psycopg2.connect(DB_URL)
-    df = pd.read_sql(sql, conn)
-    conn.close()
-    return df
+    return get_conn().execute(sql).df()
 
 
 @st.cache_data
 def drill_year(on: str, at: str) -> pd.DataFrame:
-    conn = psycopg2.connect(DB_URL)
-    df = pd.read_sql("""
+    return get_conn().execute("""
         SELECT source_year AS year, COUNT(*) AS crashes
         FROM   crashes
-        WHERE  on_road_name = %s AND at_road_name = %s
+        WHERE  on_road_name = ? AND at_road_name = ?
         GROUP  BY 1 ORDER BY 1
-    """, conn, params=(on, at))
-    conn.close()
-    return df
+    """, [on, at]).df()
 
 
 @st.cache_data
 def drill_hour(on: str, at: str) -> pd.DataFrame:
-    conn = psycopg2.connect(DB_URL)
-    df = pd.read_sql("""
-        SELECT EXTRACT(HOUR FROM crash_time)::INT AS hour, COUNT(*) AS crashes
+    return get_conn().execute("""
+        SELECT EXTRACT(HOUR FROM crash_time::TIME)::INT AS hour, COUNT(*) AS crashes
         FROM   crashes
-        WHERE  on_road_name = %s AND at_road_name = %s
+        WHERE  on_road_name = ? AND at_road_name = ?
           AND  crash_time IS NOT NULL
         GROUP  BY 1 ORDER BY 1
-    """, conn, params=(on, at))
-    conn.close()
-    return df
+    """, [on, at]).df()
 
 
 @st.cache_data
 def drill_severity(on: str, at: str) -> pd.DataFrame:
-    conn = psycopg2.connect(DB_URL)
-    df = pd.read_sql("""
+    return get_conn().execute("""
         SELECT CASE severity
                    WHEN '1' THEN 'Fatal'
                    WHEN '2' THEN 'Injury'
@@ -72,11 +71,9 @@ def drill_severity(on: str, at: str) -> pd.DataFrame:
                END AS severity,
                COUNT(*) AS crashes
         FROM   crashes
-        WHERE  on_road_name = %s AND at_road_name = %s
+        WHERE  on_road_name = ? AND at_road_name = ?
         GROUP  BY 1 ORDER BY crashes DESC
-    """, conn, params=(on, at))
-    conn.close()
-    return df
+    """, [on, at]).df()
 
 
 # ── Sidebar ──────────────────────────────────────────────────────────────────
@@ -270,7 +267,7 @@ with tab_crashes:
     # ── Hourly distribution ───────────────────────────────────────────────────
     with col_right:
         df_hourly = run_query("""
-            SELECT EXTRACT(HOUR FROM crash_time)::INT AS hour,
+            SELECT EXTRACT(HOUR FROM crash_time::TIME)::INT AS hour,
                    COUNT(*) AS crashes
             FROM   crashes
             WHERE  crash_time IS NOT NULL

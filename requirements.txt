@@ -1,0 +1,7 @@
+duckdb
+folium
+numpy
+pandas
+plotly
+pyarrow
+streamlit

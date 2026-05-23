@@ -2,7 +2,7 @@
 
 ## Next Up
 
-- [ ] `README.md` final update — reflect all Week 3–4 additions (choropleth, drill-down, neighborhood names)
+- [ ] Add dashboard screenshot (`charts/dashboard_preview.png`) and commit
 
 ## Completed
 
@@ -22,3 +22,7 @@
 - [x] `app.py` — Streamlit dashboard: Permits tab (annual trend, SF/MF split, top areas, choropleth) + Crashes tab (seasonality, hourly, severity-weighted hotspots, folium map, intersection drill-down)
 - [x] `README.md` — initial project README (needs update for Week 3–4 additions)
 - [x] Polish pass: removed Korean text, fixed @st.cache_data scope, severity-weighted chart ranking, choropleth 95th-pct color scale, TIGER interior points for neighborhood mapping
+- [x] `README.md` final update — rewritten opening, removed "Questions Answered", added screenshot placeholder
+- [x] `scripts/10_export_parquet.py` — export DB tables to Parquet for deployment
+- [x] `app.py` — swapped psycopg2 → DuckDB (reads Parquet; no hosted DB required)
+- [x] `requirements.txt` — created for Streamlit Cloud deployment
