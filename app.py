@@ -133,7 +133,7 @@ with tab_permits:
         fig.update_layout(showlegend=False, plot_bgcolor="white",
                           yaxis=dict(gridcolor="#e5e7eb"),
                           margin=dict(t=50, b=20))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     # ── SF vs MF split ───────────────────────────────────────────────────────
     df_mix = run_query("""
@@ -172,7 +172,7 @@ with tab_permits:
         plot_bgcolor="white", legend=dict(orientation="h"),
         margin=dict(t=50, b=20),
     )
-    st.plotly_chart(fig2, use_container_width=True)
+    st.plotly_chart(fig2, width="stretch")
 
     # ── Top tracts ───────────────────────────────────────────────────────────
     st.subheader("Fastest-Growing Areas (2010 → 2024)")
@@ -208,13 +208,13 @@ with tab_permits:
     fig3.update_layout(coloraxis_showscale=False, plot_bgcolor="white",
                        xaxis=dict(gridcolor="#e5e7eb"),
                        margin=dict(t=50, b=20), height=max(400, n_tracts * 30))
-    st.plotly_chart(fig3, use_container_width=True)
+    st.plotly_chart(fig3, width="stretch")
 
     # ── Geographic choropleth ─────────────────────────────────────────────────
     st.subheader("Geographic Growth Map")
     choropleth_path = CHARTS / "permits_choropleth.html"
     if choropleth_path.exists():
-        st.components.v1.html(choropleth_path.read_text(), height=500, scrolling=False)
+        st.iframe(choropleth_path, height=500)
     else:
         st.info("Run `scripts/06_visualize_permits.py` to generate the choropleth map.")
 
@@ -263,7 +263,7 @@ with tab_crashes:
         )
         fig4.update_layout(coloraxis_showscale=False, plot_bgcolor="white",
                            yaxis=dict(gridcolor="#e5e7eb"), margin=dict(t=50, b=20))
-        st.plotly_chart(fig4, use_container_width=True)
+        st.plotly_chart(fig4, width="stretch")
 
     # ── Hourly distribution ───────────────────────────────────────────────────
     with col_right:
@@ -284,7 +284,7 @@ with tab_crashes:
         )
         fig5.update_layout(coloraxis_showscale=False, plot_bgcolor="white",
                            yaxis=dict(gridcolor="#e5e7eb"), margin=dict(t=50, b=20))
-        st.plotly_chart(fig5, use_container_width=True)
+        st.plotly_chart(fig5, width="stretch")
 
     # ── Top intersections ────────────────────────────────────────────────────
     st.subheader("Top Crash Hotspot Intersections")
@@ -322,12 +322,11 @@ with tab_crashes:
     fig6.update_layout(coloraxis_showscale=False, plot_bgcolor="white",
                        xaxis=dict(gridcolor="#e5e7eb"),
                        margin=dict(t=50, b=20), height=max(400, len(df_hot) * 28))
-    st.plotly_chart(fig6, use_container_width=True)
+    st.plotly_chart(fig6, width="stretch")
 
     # ── Folium map ────────────────────────────────────────────────────────────
     st.subheader("Interactive Crash Map")
-    map_html = (CHARTS / "crashes_map.html").read_text()
-    st.components.v1.html(map_html, height=520, scrolling=False)
+    st.iframe(CHARTS / "crashes_map.html", height=520)
 
     # ── Intersection drill-down ───────────────────────────────────────────────
     st.markdown("---")
@@ -369,7 +368,7 @@ with tab_crashes:
             fig_yr.update_layout(plot_bgcolor="white",
                                  yaxis=dict(gridcolor="#e5e7eb"),
                                  margin=dict(t=40, b=10), showlegend=False)
-            st.plotly_chart(fig_yr, use_container_width=True)
+            st.plotly_chart(fig_yr, width="stretch")
 
         with dc2:
             df_hr = drill_hour(on_road, at_road)
@@ -381,7 +380,7 @@ with tab_crashes:
             fig_hr.update_layout(coloraxis_showscale=False, plot_bgcolor="white",
                                  yaxis=dict(gridcolor="#e5e7eb"),
                                  margin=dict(t=40, b=10))
-            st.plotly_chart(fig_hr, use_container_width=True)
+            st.plotly_chart(fig_hr, width="stretch")
 
         with dc3:
             df_sev = drill_severity(on_road, at_road)
@@ -397,4 +396,4 @@ with tab_crashes:
             fig_sev.update_layout(showlegend=False, plot_bgcolor="white",
                                   yaxis=dict(gridcolor="#e5e7eb"),
                                   margin=dict(t=40, b=10))
-            st.plotly_chart(fig_sev, use_container_width=True)
+            st.plotly_chart(fig_sev, width="stretch")

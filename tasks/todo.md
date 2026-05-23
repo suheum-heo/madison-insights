@@ -1,17 +1,16 @@
 # Todo
 
-## Next Up
-
-- [ ] Add dashboard screenshot (`charts/dashboard_preview.png`) and commit
-
 ## Completed
 
 - [x] Load 2023–2025 crash data via WisTransPortal ArcGIS API (`scripts/11_download_crashes_api.py`) — 73,691 total crashes
 - [x] Backfill blank `on_road_name` for highway crashes (2023–2025) from ONHWYSYS+ONHWY fields (I-39, US-12, WI-19, CTH N, etc.)
 - [x] Update dashboard to use all years (2018–2025): hotspot chart title, metric label, source caption, key findings blurb
-
-## Completed
-
+- [x] Census housing data updated to ACS 2024 (125 tracts, 261,061 units)
+- [x] Filter self-intersections from hotspot chart and drill-down (e.g. "JOHN NOLEN DR @ JOHN NOLEN DR")
+- [x] Fix monthly crash chart — dynamic year count instead of hardcoded ÷5
+- [x] Align `crashes_top_intersections.png` to severity-score ranking (matches dashboard)
+- [x] Add dashboard screenshot (`charts/dashboard.png`) — uploaded by user, referenced in README
+- [x] Deprecated API cleanup: `use_container_width` → `width="stretch"`, `st.components.v1.html` → `st.iframe`
 - [x] Project setup: `.venv`, PostgreSQL `madison_analysis` DB, schema created
 - [x] `scripts/01_create_schema.sql` — crashes + permits_bps_monthly + census_tracts tables
 - [x] `scripts/02_download_crashes.py` — WI State Patrol crash data loader (Dane County filter)
@@ -26,9 +25,8 @@
 - [x] `scripts/08_insights.md` — key findings summary
 - [x] `scripts/09_neighborhood_mapping.py` — spatial join: 48 tracts mapped to Madison neighborhood names via TIGER interior points + ray casting
 - [x] `app.py` — Streamlit dashboard: Permits tab (annual trend, SF/MF split, top areas, choropleth) + Crashes tab (seasonality, hourly, severity-weighted hotspots, folium map, intersection drill-down)
-- [x] `README.md` — initial project README (needs update for Week 3–4 additions)
 - [x] Polish pass: removed Korean text, fixed @st.cache_data scope, severity-weighted chart ranking, choropleth 95th-pct color scale, TIGER interior points for neighborhood mapping
-- [x] `README.md` final update — rewritten opening, removed "Questions Answered", added screenshot placeholder
+- [x] `README.md` — portfolio rewrite with live demo URL, key findings, screenshots, stack, how to run
 - [x] `scripts/10_export_parquet.py` — export DB tables to Parquet for deployment
 - [x] `app.py` — swapped psycopg2 → DuckDB (reads Parquet; no hosted DB required)
 - [x] `requirements.txt` — created for Streamlit Cloud deployment
