@@ -6,23 +6,21 @@ Exploratory analysis of Madison, WI public data — building permits and traffic
 
 ## Questions Answered
 
-| | Question | |
-|---|---|---|
-| 🏗️ | 건물 허가: **어느 동네가 빠르게 성장하고 있나?** | Which neighborhoods are growing fastest? |
-| 🚗 | 교통사고: **사고 다발 구간은 어디인가? 계절성 패턴은?** | Where are crash hotspots? What are the seasonal patterns? |
+1. 🏗️ **Building Permits** — Which neighborhoods are growing fastest?
+2. 🚗 **Traffic Crashes** — Where are the hotspot intersections, and what are the seasonal patterns?
 
 ---
 
 ## Key Findings
 
-### Building Permits
+### 🏗️ Building Permits
 Madison MSA housing construction accelerated sharply after 2013, peaking at **7,334 units authorized in 2021** — a 5× increase from the 2010–2012 post-recession floor. The mix has shifted decisively toward density: by 2022, single-family homes made up only **28.7%** of permitted units, down from a majority in earlier years, with multifamily (5+ units) driving the bulk of growth.
 
 At the neighborhood level, **Census Tract 109.03** (far east Madison, near East Towne) saw the most explosive growth — a **+148.8%** increase in housing units over 2010 levels. Fast-growing tracts cluster on Madison's east and southwest edges, consistent with the city's outward expansion along E Washington Ave, Verona Rd, and Stoughton Rd corridors.
 
 ![Annual permit trend](charts/permits_annual_trend.png)
 
-### Traffic Crashes
+### 🚗 Traffic Crashes
 The **#1 crash hotspot** over 2018–2022 was **S Gammon Rd @ Watts Rd** (106 crashes), followed by S Stoughton Rd @ Pflaum Rd (103) and the John Nolen Dr corridor (97). These are high-volume arterial intersections on Madison's south and east sides. E Washington Ave appeared three times in the top 15, underscoring persistent safety challenges on that corridor.
 
 **October is the peak crash month** (939 avg/year), with January and December nearly as high — fall/winter conditions drive the spike. Crashes dip to their lowest in spring (March–April). By time of day, the **5 PM hour** had the most crashes (4,342), with the 3–5 PM window accounting for ~24% of all timed crashes.
