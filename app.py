@@ -300,6 +300,7 @@ with tab_crashes:
         FROM   crashes
         WHERE  on_road_name NOT IN ('', 'NaN', 'nan')
           AND  at_road_name NOT IN ('', 'NaN', 'nan')
+          AND  on_road_name != at_road_name
         GROUP  BY 1
         HAVING COUNT(*) >= {min_crashes}
         ORDER  BY severity_score DESC
@@ -340,6 +341,7 @@ with tab_crashes:
         FROM   crashes
         WHERE  on_road_name NOT IN ('', 'NaN', 'nan')
           AND  at_road_name NOT IN ('', 'NaN', 'nan')
+          AND  on_road_name != at_road_name
         GROUP  BY 1
         HAVING COUNT(*) >= 10
         ORDER  BY severity_score DESC

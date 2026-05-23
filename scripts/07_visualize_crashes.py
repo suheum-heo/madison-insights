@@ -149,6 +149,7 @@ def chart_top_intersections():
         FROM   crashes
         WHERE  on_road_name IS NOT NULL AND on_road_name NOT IN ('', 'NaN', 'nan')
           AND  at_road_name IS NOT NULL AND at_road_name NOT IN ('', 'NaN', 'nan')
+          AND  on_road_name != at_road_name
         GROUP  BY 1
         HAVING COUNT(*) >= 3
         ORDER  BY crashes DESC
@@ -159,7 +160,7 @@ def chart_top_intersections():
     fig, ax = plt.subplots(figsize=(10, 7))
     bars = ax.barh(df["intersection"], df["crashes"], color=RED, zorder=2)
     ax.bar_label(bars, fmt="%d", padding=4, fontsize=8)
-    ax.set_title("Top 15 Crash Hotspot Intersections — Dane County (2018–2022)",
+    ax.set_title("Top 15 Crash Hotspot Intersections — Dane County (2018–2025)",
                  fontsize=11, fontweight="bold")
     ax.set_xlabel("Total Crashes")
     ax.grid(axis="x", linestyle="--", alpha=0.4, zorder=1)

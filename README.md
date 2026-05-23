@@ -78,8 +78,6 @@ Across 73,691 Dane County crashes (2018–2025), **S Stoughton Rd @ Pflaum Rd** 
 
 ![Annual permit trend](charts/permits_annual_trend.png)
 
-![SF vs multifamily split](charts/permits_sf_vs_mf.png)
-
 ![Top growing areas](charts/permits_top_tracts.png)
 
 ![Top crash hotspots](charts/crashes_top_intersections.png)
