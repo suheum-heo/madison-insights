@@ -1,20 +1,24 @@
 """
-Download WI State Patrol crash data (2018-2022) from Box.com and load to Postgres.
+Download WI State Patrol crash data from Box.com and load to Postgres.
+Currently loaded: 2018–2022. Extend by dropping new ZIPs in data/raw/crashes/
+and re-running — already-loaded years are skipped automatically via DB check.
 
-Box.com requires a browser login for the redirect, so this script attempts a
-direct download first; if that fails it prints manual-download instructions.
+--- How to get new data ---
 
-Manual download steps (do once, then re-run this script):
-  1. Open each URL below in your browser
-  2. Click "Download" (no account needed)
-  3. Save the ZIP file to data/raw/crashes/
-
+Box.com links for published years (no login required — click Download):
   WI_Crash_Annual_2022.zip  → https://wisdot.box.com/s/d9t72ih7tko8w8nhx35t01aqdxppy5n5
   WI_Crash_Annual_2021.zip  → https://wisdot.box.com/s/nze1fgpp5uxe0go365u04zq2j3y9qrho
   WI_Crash_Annual_2020.zip  → https://wisdot.box.com/s/0ro1y4upd4bwp8xcmhfxxyyunh7xcxnf
   WI_Crash_Annual_2019.zip  → https://wisdot.box.com/s/hcc85hy4tzh768v9u4b4ov0nbsge3h7q
   WI_Crash_Annual_2018.zip  → https://wisdot.box.com/s/gu1o556fz24zlz8zp0huhhva4mo5nib9
   Documentation             → https://wisdot.box.com/s/57ojuczi71rffpehyjk39cfn8o6u44rd
+
+2023 / 2024 links — NOT YET PUBLISHED to Box.com as of May 2026.
+The official source page was last updated 2023-09-16:
+  https://wi-state-patrol.atlassian.net/wiki/spaces/OPENDATA/pages/2069528581/
+To request data directly: crash-data@topslab.wisc.edu
+                         CrashDataAnalysis@dot.wi.gov
+Once you have the ZIPs, place them in data/raw/crashes/ and re-run this script.
 """
 
 import os
@@ -34,6 +38,15 @@ DB_URL = "dbname=madison_analysis"
 # Dane County FIPS = 13 (county_code in DT4000 data)
 # City of Madison city_code varies by year; filter by city_name instead
 DANE_COUNTY_CODE = 13
+
+
+def get_loaded_years(conn) -> set[int]:
+    """Return set of source_years already in the crashes table."""
+    cur = conn.cursor()
+    cur.execute("SELECT DISTINCT source_year FROM crashes")
+    years = {row[0] for row in cur.fetchall()}
+    cur.close()
+    return years
 
 
 def find_zip_files(skip_years: set[int] = frozenset()):
@@ -191,13 +204,22 @@ def upsert(conn, df: pd.DataFrame):
 
 
 def main():
-    zips = find_zip_files(skip_years={2018})  # 2018 already loaded
+    conn = psycopg2.connect(DB_URL)
+    loaded = get_loaded_years(conn)
+    if loaded:
+        print(f"Years already in DB: {sorted(loaded)} — will skip")
+
+    zips = find_zip_files(skip_years=loaded)
     if not zips:
-        print("No ZIP files found in data/raw/crashes/")
-        print(__doc__)
+        all_zips = find_zip_files()
+        if all_zips:
+            print(f"All ZIP files ({[z.name for z in all_zips]}) already loaded. Nothing to do.")
+        else:
+            print("No ZIP files found in data/raw/crashes/")
+            print(__doc__)
+        conn.close()
         return
 
-    conn = psycopg2.connect(DB_URL)
     for z in zips:
         year = extract_year(z)
         print(f"\nProcessing {z.name} (year={year})...")
