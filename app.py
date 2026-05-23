@@ -251,11 +251,12 @@ with tab_crashes:
             ORDER  BY 1
         """)
         df_monthly["month_name"] = df_monthly["month"].apply(lambda m: MONTH_NAMES[m - 1])
-        df_monthly["avg_per_year"] = (df_monthly["crashes"] / 5).round(0)
+        n_years = run_query("SELECT COUNT(DISTINCT source_year) AS n FROM crashes")["n"][0]
+        df_monthly["avg_per_year"] = (df_monthly["crashes"] / n_years).round(0)
 
         fig4 = px.bar(
             df_monthly, x="month_name", y="avg_per_year",
-            title="Average Crashes by Month",
+            title="Average Crashes by Month (2018–2025)",
             labels={"month_name": "Month", "avg_per_year": "Avg Crashes / Year"},
             color="avg_per_year",
             color_continuous_scale=[[0, "#93C5FD"], [0.5, "#2563EB"], [1, "#DC2626"]],
