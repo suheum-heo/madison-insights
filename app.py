@@ -175,7 +175,7 @@ with tab_permits:
     st.plotly_chart(fig2, use_container_width=True)
 
     # ── Top tracts ───────────────────────────────────────────────────────────
-    st.subheader("Fastest-Growing Areas (2010 → 2022)")
+    st.subheader("Fastest-Growing Areas (2010 → 2023)")
     col_n, _ = st.columns([1, 3])
     with col_n:
         n_tracts = st.slider("Number of areas", 5, 30, 15, key="n_tracts")
