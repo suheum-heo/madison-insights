@@ -4,7 +4,7 @@ An end-to-end data engineering and analytics project covering traffic safety and
 
 ![Dashboard preview](charts/dashboard_preview.png)
 
-**Live demo:** *(add Streamlit Cloud URL here)*
+**Live demo:** [madison-insights.streamlit.app](https://madison-insights.streamlit.app)
 
 ---
 
