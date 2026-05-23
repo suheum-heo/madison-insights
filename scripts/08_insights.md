@@ -4,7 +4,7 @@
 
 ---
 
-## 1. 건물 허가: 어느 동네가 빠르게 성장하고 있나?
+## 1. Building Permits — Which Neighborhoods Are Growing Fast?
 
 Madison MSA housing construction accelerated sharply after 2013, peaking at **7,334 units authorized in 2021** — a 5× increase from the 2010–2012 post-recession floor. The mix has shifted decisively toward density: in 2022, single-family homes made up only **28.7%** of permitted units, down from a majority in earlier years, with multifamily (5+ units) driving the bulk of growth.
 
@@ -12,7 +12,7 @@ At the neighborhood level, **Census Tract 109.03** (far east Madison, near East 
 
 ---
 
-## 2. 교통사고: 사고 다발 구간은 어디인가? 계절성 패턴은?
+## 2. Traffic Crashes — Hotspot Intersections & Seasonal Patterns
 
 The **#1 crash hotspot** over 2018–2022 was **S Gammon Rd @ Watts Rd** (106 crashes), followed closely by S Stoughton Rd @ Pflaum Rd (103) and the John Nolen Dr corridor (97). These are all high-volume arterial intersections on Madison's south and east sides — not downtown, suggesting the heaviest risk is in commuter corridors rather than the urban core. E Washington Ave appeared three times in the top 15, underscoring persistent safety challenges on that corridor.
 
