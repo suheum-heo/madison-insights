@@ -222,7 +222,20 @@ def chart_choropleth():
     growth_map = dict(zip(df["geoid"], df["growth_pct"]))
     label_map  = dict(zip(df["geoid"], df["label"]))
 
-    # Attach label + growth_pct to each TIGER feature for tooltip
+    # Cap color scale at 95th percentile so one outlier doesn't compress the palette.
+    # Clip data values to [p05, p95] so folium doesn't reject out-of-range rows;
+    # outliers still get the darkest/lightest color, they just don't skew the scale.
+    import numpy as np
+    valid = df["growth_pct"].dropna()
+    p05 = float(valid.quantile(0.05))
+    p95 = float(valid.quantile(0.95))
+    # Keep exact endpoints to avoid off-by-rounding out-of-range errors in folium
+    inner = [round(v, 1) for v in np.linspace(p05, p95, 6)[1:-1].tolist()]
+    thresholds = [p05] + inner + [p95]
+    df_plot = df.copy()
+    df_plot["growth_pct"] = df_plot["growth_pct"].clip(lower=p05, upper=p95)
+
+    # Attach label + raw (unclipped) growth_pct to TIGER features for tooltip
     for feat in tiger["features"]:
         gid = feat["properties"]["GEOID"]
         feat["properties"]["growth_pct"] = growth_map.get(gid)
@@ -232,14 +245,15 @@ def chart_choropleth():
 
     folium.Choropleth(
         geo_data=tiger,
-        data=df,
+        data=df_plot,
         columns=["geoid", "growth_pct"],
         key_on="feature.properties.GEOID",
         fill_color="YlOrRd",
         fill_opacity=0.75,
         line_opacity=0.3,
         nan_fill_color="#cccccc",
-        legend_name="Housing Unit Growth % (2010→2022)",
+        threshold_scale=thresholds,
+        legend_name=f"Housing Unit Growth % (2010→2022) — color capped at {p95:.0f}% (95th pct)",
         name="Growth %",
     ).add_to(m)
 

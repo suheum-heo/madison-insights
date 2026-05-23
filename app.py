@@ -288,17 +288,20 @@ with tab_crashes:
 
     df_intersections = run_query("""
         SELECT on_road_name || ' @ ' || at_road_name AS intersection,
-               COUNT(*) AS crashes
+               COUNT(*) AS crashes,
+               SUM(CASE WHEN severity='1' THEN 5
+                        WHEN severity='2' THEN 2
+                        ELSE 1 END) AS severity_score
         FROM   crashes
         WHERE  on_road_name NOT IN ('', 'NaN', 'nan')
           AND  at_road_name NOT IN ('', 'NaN', 'nan')
         GROUP  BY 1
         HAVING COUNT(*) >= 10
-        ORDER  BY crashes DESC
+        ORDER  BY severity_score DESC
         LIMIT  50
     """)
     selected = st.selectbox(
-        "Select an intersection",
+        "Select an intersection (ranked by severity score: fatal×5, injury×2, PDO×1)",
         options=df_intersections["intersection"].tolist(),
         key="drill_intersection",
     )
