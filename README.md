@@ -2,7 +2,7 @@
 
 An end-to-end data engineering and analytics project covering traffic safety and housing growth in Madison, WI. Pulls from three public sources, loads ~74K crash records and 38 years of permit data into PostgreSQL, and surfaces findings through an interactive Streamlit dashboard deployed on Streamlit Community Cloud.
 
-![Dashboard preview](charts/dashboard_preview.png)
+![Dashboard preview](charts/dashboard.png)
 
 **Live demo:** [madison-insights.streamlit.app](https://madison-insights.streamlit.app)
 
@@ -76,13 +76,15 @@ Across 73,691 Dane County crashes (2018–2025), **S Stoughton Rd @ Pflaum Rd** 
 
 ## Screenshots
 
-<img width="1498" height="710" alt="Image" src="https://github.com/user-attachments/assets/1560afe8-454f-4868-a471-f8c7a8678c4f" />
+![Annual permit trend](charts/permits_annual_trend.png)
 
-<img width="519" height="588" alt="Image" src="https://github.com/user-attachments/assets/8e9b6ae8-140a-4896-9e47-553c4d9ce598" />
+![SF vs multifamily split](charts/permits_sf_vs_mf.png)
 
-<img width="535" height="450" alt="Image" src="https://github.com/user-attachments/assets/e0dac729-5899-45ca-9c10-6326c953b3b8" />
+![Top growing areas](charts/permits_top_tracts.png)
 
-<img width="526" height="567" alt="Image" src="https://github.com/user-attachments/assets/165506ed-ab26-426d-9383-fab239e97502" />
+![Top crash hotspots](charts/crashes_top_intersections.png)
+
+![Monthly crash seasonality](charts/crashes_monthly_seasonality.png)
 
 ---
 
