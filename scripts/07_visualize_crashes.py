@@ -145,24 +145,26 @@ def chart_top_intersections():
     df = query("""
         SELECT on_road_name || ' @ ' || at_road_name AS intersection,
                COUNT(*) AS crashes,
-               SUM(num_injuries) AS injuries
+               SUM(CASE WHEN severity='1' THEN 5
+                        WHEN severity='2' THEN 2
+                        ELSE 1 END) AS severity_score
         FROM   crashes
         WHERE  on_road_name IS NOT NULL AND on_road_name NOT IN ('', 'NaN', 'nan')
           AND  at_road_name IS NOT NULL AND at_road_name NOT IN ('', 'NaN', 'nan')
           AND  on_road_name != at_road_name
         GROUP  BY 1
         HAVING COUNT(*) >= 3
-        ORDER  BY crashes DESC
+        ORDER  BY severity_score DESC
         LIMIT  15
     """)
-    df = df.sort_values("crashes")
+    df = df.sort_values("severity_score")
 
     fig, ax = plt.subplots(figsize=(10, 7))
-    bars = ax.barh(df["intersection"], df["crashes"], color=RED, zorder=2)
+    bars = ax.barh(df["intersection"], df["severity_score"], color=RED, zorder=2)
     ax.bar_label(bars, fmt="%d", padding=4, fontsize=8)
     ax.set_title("Top 15 Crash Hotspot Intersections — Dane County (2018–2025)",
                  fontsize=11, fontweight="bold")
-    ax.set_xlabel("Total Crashes")
+    ax.set_xlabel("Severity Score (fatal×5, injury×2, PDO×1)")
     ax.grid(axis="x", linestyle="--", alpha=0.4, zorder=1)
     fig.tight_layout()
     out = CHARTS / "crashes_top_intersections.png"
