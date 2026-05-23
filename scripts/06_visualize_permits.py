@@ -10,9 +10,11 @@ Charts produced:
 Run: .venv/bin/python3 scripts/06_visualize_permits.py
 """
 
-import os
+import json
+import urllib.request
 from pathlib import Path
 
+import folium
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -116,7 +118,7 @@ def chart_sf_vs_mf():
 # ── 3. Top 15 tracts by % growth ─────────────────────────────────────────────
 def chart_top_tracts():
     df = query("""
-        SELECT name,
+        SELECT COALESCE(neighborhood, name) AS label,
                housing_units_2010                   AS units_2010,
                housing_units_2023                   AS units_2022,
                housing_units_2023 - housing_units_2010 AS units_added,
@@ -128,14 +130,30 @@ def chart_top_tracts():
         ORDER  BY growth_pct DESC
         LIMIT  15
     """)
-    # Shorten labels: "Census Tract 4.01" → "Tract 4.01"
-    df["label"] = df["name"].str.replace("Census Tract", "Tract", regex=False)
-    df = df.sort_values("growth_pct")
+    df["label"] = df["label"].str.replace("Census Tract", "Tract", regex=False)
+    # Disambiguate duplicate neighborhood labels
+    dup_mask = df["label"].duplicated(keep=False)
+    df.loc[dup_mask, "label"] = df.loc[dup_mask, "label"]
+    # Re-query to get original tract name for disambiguation suffix
+    df2 = query("""
+        SELECT COALESCE(neighborhood, name) AS nb,
+               REPLACE(name, 'Census Tract ', '') AS tract_num,
+               ROUND((housing_units_2023 - housing_units_2010) * 100.0
+                     / NULLIF(housing_units_2010, 0), 1) AS growth_pct
+        FROM   census_tracts
+        WHERE  housing_units_2010 > 100 AND housing_units_2023 IS NOT NULL
+        ORDER  BY growth_pct DESC LIMIT 15
+    """)
+    df2["nb"] = df2["nb"].str.replace("Census Tract", "Tract", regex=False)
+    dup = df2["nb"].duplicated(keep=False)
+    df2.loc[dup, "nb"] = df2.loc[dup, "nb"] + " (Tract " + df2.loc[dup, "tract_num"] + ")"
+    df2 = df2.sort_values("growth_pct")
+    df2["growth_pct"] = df2["growth_pct"].astype(float)
 
     fig, ax = plt.subplots(figsize=(9, 7))
-    bars = ax.barh(df["label"], df["growth_pct"], color=GREEN, zorder=2)
+    bars = ax.barh(df2["nb"], df2["growth_pct"], color=GREEN, zorder=2)
     ax.bar_label(bars, fmt="%.1f%%", padding=4, fontsize=8)
-    ax.set_title("Top 15 Fastest-Growing Census Tracts (2010→2022)\n% Change in Housing Units",
+    ax.set_title("Top 15 Fastest-Growing Areas (2010→2022)\n% Change in Housing Units",
                  fontsize=12, fontweight="bold")
     ax.set_xlabel("Growth (%)")
     ax.grid(axis="x", linestyle="--", alpha=0.4, zorder=1)
@@ -149,7 +167,7 @@ def chart_top_tracts():
 # ── 4. Shrinking tracts ───────────────────────────────────────────────────────
 def chart_shrinking_tracts():
     df = query("""
-        SELECT name,
+        SELECT COALESCE(neighborhood, name) AS label,
                housing_units_2023 - housing_units_2010 AS units_change
         FROM   census_tracts
         WHERE  housing_units_2010 IS NOT NULL
@@ -161,7 +179,7 @@ def chart_shrinking_tracts():
         print("  No shrinking tracts found — skipping chart")
         return
 
-    df["label"] = df["name"].str.replace("Census Tract", "Tract", regex=False)
+    df["label"] = df["label"].str.replace("Census Tract", "Tract", regex=False)
     df = df.sort_values("units_change", ascending=False)
 
     fig, ax = plt.subplots(figsize=(8, max(4, len(df) * 0.5)))
@@ -179,10 +197,73 @@ def chart_shrinking_tracts():
     print(f"  Saved {out}")
 
 
+# ── 5. Choropleth map ─────────────────────────────────────────────────────────
+def chart_choropleth():
+    # Fetch TIGER tract GeoJSON for Dane County
+    url = (
+        "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks"
+        "/MapServer/0/query?where=STATE%3D%2755%27+AND+COUNTY%3D%27025%27"
+        "&outFields=GEOID,NAME&f=geojson&returnGeometry=true"
+    )
+    with urllib.request.urlopen(url, timeout=30) as r:
+        tiger = json.loads(r.read())
+
+    # Pull growth data from DB
+    df = query("""
+        SELECT geoid,
+               COALESCE(neighborhood, name) AS label,
+               ROUND((housing_units_2023 - housing_units_2010) * 100.0
+                     / NULLIF(housing_units_2010, 0), 1)::FLOAT AS growth_pct
+        FROM   census_tracts
+        WHERE  housing_units_2010 IS NOT NULL
+          AND  housing_units_2023 IS NOT NULL
+    """)
+    df["growth_pct"] = df["growth_pct"].astype(float)
+    growth_map = dict(zip(df["geoid"], df["growth_pct"]))
+    label_map  = dict(zip(df["geoid"], df["label"]))
+
+    # Attach label + growth_pct to each TIGER feature for tooltip
+    for feat in tiger["features"]:
+        gid = feat["properties"]["GEOID"]
+        feat["properties"]["growth_pct"] = growth_map.get(gid)
+        feat["properties"]["label"] = label_map.get(gid, feat["properties"]["NAME"])
+
+    m = folium.Map(location=[43.07, -89.40], zoom_start=11, tiles="CartoDB positron")
+
+    folium.Choropleth(
+        geo_data=tiger,
+        data=df,
+        columns=["geoid", "growth_pct"],
+        key_on="feature.properties.GEOID",
+        fill_color="YlOrRd",
+        fill_opacity=0.75,
+        line_opacity=0.3,
+        nan_fill_color="#cccccc",
+        legend_name="Housing Unit Growth % (2010→2022)",
+        name="Growth %",
+    ).add_to(m)
+
+    # Tooltip overlay
+    folium.GeoJson(
+        tiger,
+        style_function=lambda _: {"fillOpacity": 0, "weight": 0},
+        tooltip=folium.GeoJsonTooltip(
+            fields=["label", "growth_pct"],
+            aliases=["Neighborhood", "Growth %"],
+            localize=True,
+        ),
+    ).add_to(m)
+
+    out = CHARTS / "permits_choropleth.html"
+    m.save(str(out))
+    print(f"  Saved {out}")
+
+
 if __name__ == "__main__":
     print("Generating permit charts...")
     chart_annual_trend()
     chart_sf_vs_mf()
     chart_top_tracts()
     chart_shrinking_tracts()
+    chart_choropleth()
     print("Done.")

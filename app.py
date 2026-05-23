@@ -133,16 +133,14 @@ with tab_permits:
     st.plotly_chart(fig2, use_container_width=True)
 
     # ── Top tracts ───────────────────────────────────────────────────────────
-    st.subheader("Fastest-Growing Census Tracts (2010 → 2022)")
+    st.subheader("Fastest-Growing Areas (2010 → 2022)")
     col_n, _ = st.columns([1, 3])
     with col_n:
-        n_tracts = st.slider("Number of tracts", 5, 30, 15, key="n_tracts")
+        n_tracts = st.slider("Number of areas", 5, 30, 15, key="n_tracts")
 
     df_tracts = run_query(f"""
-        SELECT name,
-               housing_units_2010                   AS units_2010,
-               housing_units_2023                   AS units_2022,
-               housing_units_2023 - housing_units_2010 AS units_added,
+        SELECT COALESCE(neighborhood, name) AS nb,
+               REPLACE(name, 'Census Tract ', '') AS tract_num,
                ROUND((housing_units_2023 - housing_units_2010) * 100.0
                      / NULLIF(housing_units_2010, 0), 1)::FLOAT AS growth_pct
         FROM   census_tracts
@@ -150,13 +148,16 @@ with tab_permits:
         ORDER  BY growth_pct DESC
         LIMIT  {n_tracts}
     """)
-    df_tracts["label"] = df_tracts["name"].str.replace("Census Tract", "Tract", regex=False)
+    # Disambiguate duplicate neighborhood labels
+    dup = df_tracts["nb"].duplicated(keep=False)
+    df_tracts.loc[dup, "nb"] = df_tracts.loc[dup, "nb"] + " (Tract " + df_tracts.loc[dup, "tract_num"] + ")"
+    df_tracts["nb"] = df_tracts["nb"].str.replace("Census Tract", "Tract", regex=False)
     df_tracts = df_tracts.sort_values("growth_pct")
 
     fig3 = px.bar(
-        df_tracts, x="growth_pct", y="label", orientation="h",
-        title=f"Top {n_tracts} Census Tracts by % Housing Unit Growth",
-        labels={"growth_pct": "Growth (%)", "label": ""},
+        df_tracts, x="growth_pct", y="nb", orientation="h",
+        title=f"Top {n_tracts} Fastest-Growing Areas — % Housing Unit Change",
+        labels={"growth_pct": "Growth (%)", "nb": ""},
         color="growth_pct",
         color_continuous_scale="Greens",
         text="growth_pct",
@@ -164,16 +165,23 @@ with tab_permits:
     fig3.update_traces(texttemplate="%{text:.1f}%", textposition="outside")
     fig3.update_layout(coloraxis_showscale=False, plot_bgcolor="white",
                        xaxis=dict(gridcolor="#e5e7eb"),
-                       margin=dict(t=50, b=20), height=max(400, n_tracts * 28))
+                       margin=dict(t=50, b=20), height=max(400, n_tracts * 30))
     st.plotly_chart(fig3, use_container_width=True)
+
+    # ── Geographic choropleth ─────────────────────────────────────────────────
+    st.subheader("Geographic Growth Map")
+    choropleth_path = CHARTS / "permits_choropleth.html"
+    if choropleth_path.exists():
+        st.components.v1.html(choropleth_path.read_text(), height=500, scrolling=False)
+    else:
+        st.info("Run `scripts/06_visualize_permits.py` to generate the choropleth map.")
 
 
 # ════════════════════════════════════════════════════════════════════════════
 # TAB 2: TRAFFIC CRASHES
 # ════════════════════════════════════════════════════════════════════════════
 with tab_crashes:
-    st.header("Traffic Crashes — 사고 다발 구간 & 계절성")
-    st.caption("Hotspot intersections and seasonality patterns")
+    st.header("Traffic Crashes — Hotspots & Seasonality")
 
     col_a, col_b, col_c = st.columns(3)
     crash_totals = run_query("""
@@ -273,3 +281,112 @@ with tab_crashes:
     st.subheader("Interactive Crash Map")
     map_html = (CHARTS / "crashes_map.html").read_text()
     st.components.v1.html(map_html, height=520, scrolling=False)
+
+    # ── Intersection drill-down ───────────────────────────────────────────────
+    st.markdown("---")
+    st.subheader("Intersection Drill-Down")
+
+    df_intersections = run_query("""
+        SELECT on_road_name || ' @ ' || at_road_name AS intersection,
+               COUNT(*) AS crashes
+        FROM   crashes
+        WHERE  on_road_name NOT IN ('', 'NaN', 'nan')
+          AND  at_road_name NOT IN ('', 'NaN', 'nan')
+        GROUP  BY 1
+        HAVING COUNT(*) >= 10
+        ORDER  BY crashes DESC
+        LIMIT  50
+    """)
+    selected = st.selectbox(
+        "Select an intersection",
+        options=df_intersections["intersection"].tolist(),
+        key="drill_intersection",
+    )
+
+    if selected:
+        on_road, at_road = selected.split(" @ ", 1)
+
+        @st.cache_data
+        def drill_year(on: str, at: str) -> pd.DataFrame:
+            conn = psycopg2.connect(DB_URL)
+            df = pd.read_sql("""
+                SELECT source_year AS year, COUNT(*) AS crashes
+                FROM   crashes
+                WHERE  on_road_name = %s AND at_road_name = %s
+                GROUP  BY 1 ORDER BY 1
+            """, conn, params=(on, at))
+            conn.close()
+            return df
+
+        @st.cache_data
+        def drill_hour(on: str, at: str) -> pd.DataFrame:
+            conn = psycopg2.connect(DB_URL)
+            df = pd.read_sql("""
+                SELECT EXTRACT(HOUR FROM crash_time)::INT AS hour, COUNT(*) AS crashes
+                FROM   crashes
+                WHERE  on_road_name = %s AND at_road_name = %s
+                  AND  crash_time IS NOT NULL
+                GROUP  BY 1 ORDER BY 1
+            """, conn, params=(on, at))
+            conn.close()
+            return df
+
+        @st.cache_data
+        def drill_severity(on: str, at: str) -> pd.DataFrame:
+            conn = psycopg2.connect(DB_URL)
+            df = pd.read_sql("""
+                SELECT CASE severity
+                           WHEN '1' THEN 'Fatal'
+                           WHEN '2' THEN 'Injury'
+                           WHEN '3' THEN 'PDO'
+                           ELSE severity
+                       END AS severity,
+                       COUNT(*) AS crashes
+                FROM   crashes
+                WHERE  on_road_name = %s AND at_road_name = %s
+                GROUP  BY 1 ORDER BY crashes DESC
+            """, conn, params=(on, at))
+            conn.close()
+            return df
+
+        dc1, dc2, dc3 = st.columns(3)
+
+        with dc1:
+            df_yr = drill_year(on_road, at_road)
+            fig_yr = px.bar(df_yr, x="year", y="crashes",
+                            title="Crashes per Year",
+                            labels={"year": "Year", "crashes": "Crashes"},
+                            color_discrete_sequence=["#2563EB"], text="crashes")
+            fig_yr.update_traces(textposition="outside")
+            fig_yr.update_layout(plot_bgcolor="white",
+                                 yaxis=dict(gridcolor="#e5e7eb"),
+                                 margin=dict(t=40, b=10), showlegend=False)
+            st.plotly_chart(fig_yr, use_container_width=True)
+
+        with dc2:
+            df_hr = drill_hour(on_road, at_road)
+            fig_hr = px.bar(df_hr, x="hour", y="crashes",
+                            title="Crashes by Hour",
+                            labels={"hour": "Hour", "crashes": "Crashes"},
+                            color="crashes",
+                            color_continuous_scale=[[0, "#93C5FD"], [1, "#DC2626"]])
+            fig_hr.update_layout(coloraxis_showscale=False, plot_bgcolor="white",
+                                 yaxis=dict(gridcolor="#e5e7eb"),
+                                 margin=dict(t=40, b=10))
+            st.plotly_chart(fig_hr, use_container_width=True)
+
+        with dc3:
+            df_sev = drill_severity(on_road, at_road)
+            fig_sev = px.bar(df_sev, x="severity", y="crashes",
+                             title="Severity Breakdown",
+                             labels={"severity": "", "crashes": "Crashes"},
+                             color="severity",
+                             color_discrete_map={"Fatal": "#DC2626",
+                                                 "Injury": "#F97316",
+                                                 "PDO": "#2563EB"},
+                             text="crashes")
+            fig_sev.update_traces(textposition="outside")
+            fig_sev.update_layout(showlegend=False, plot_bgcolor="white",
+                                  yaxis=dict(gridcolor="#e5e7eb"),
+                                  margin=dict(t=40, b=10))
+            st.plotly_chart(fig_sev, use_container_width=True)
