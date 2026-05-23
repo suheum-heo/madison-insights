@@ -86,11 +86,11 @@ with st.sidebar:
         "- Housing permits peaked at **7,334 units** in 2021\n"
         "- Multifamily now >70% of all new units\n"
         "- Madison West (Tract 109.03) grew **+148.8%** since 2010\n"
-        "- Top crash hotspot: **S Gammon Rd @ Watts Rd** (106 crashes)\n"
+        "- Top crash hotspot: **S Stoughton Rd @ Pflaum Rd** (176 crashes)\n"
         "- Peak crash hour: **5 PM**; peak month: **October**"
     )
     st.markdown("---")
-    st.caption("Sources: WI State Patrol (2018–2022) · FRED · Census ACS")
+    st.caption("Sources: WI State Patrol (2018–2025) · FRED · Census ACS")
 
 
 # ── Tabs ─────────────────────────────────────────────────────────────────────
@@ -232,7 +232,7 @@ with tab_crashes:
                SUM(CASE WHEN severity = '1' THEN 1 ELSE 0 END) AS fatal
         FROM crashes
     """)
-    col_a.metric("Total Crashes (2018–2022)", f"{int(crash_totals['total'][0]):,}")
+    col_a.metric("Total Crashes (2018–2025)", f"{int(crash_totals['total'][0]):,}")
     col_b.metric("Injury Crashes", f"{int(crash_totals['injury'][0]):,}")
     col_c.metric("Fatal Crashes", f"{int(crash_totals['fatal'][0]):,}")
 
@@ -309,7 +309,7 @@ with tab_crashes:
 
     fig6 = px.bar(
         df_hot, x="severity_score", y="intersection", orientation="h",
-        title=f"Top Crash Hotspots — Severity Score (≥{min_crashes} crashes, 2018–2022)",
+        title=f"Top Crash Hotspots — Severity Score (≥{min_crashes} crashes, 2018–2025)",
         labels={"severity_score": "Severity Score (fatal×5, injury×2, PDO×1)", "intersection": ""},
         color="severity_score",
         color_continuous_scale=[[0, "#FCA5A5"], [1, "#DC2626"]],

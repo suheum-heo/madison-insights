@@ -6,6 +6,12 @@
 
 ## Completed
 
+- [x] Load 2023–2025 crash data via WisTransPortal ArcGIS API (`scripts/11_download_crashes_api.py`) — 73,691 total crashes
+- [x] Backfill blank `on_road_name` for highway crashes (2023–2025) from ONHWYSYS+ONHWY fields (I-39, US-12, WI-19, CTH N, etc.)
+- [x] Update dashboard to use all years (2018–2025): hotspot chart title, metric label, source caption, key findings blurb
+
+## Completed
+
 - [x] Project setup: `.venv`, PostgreSQL `madison_analysis` DB, schema created
 - [x] `scripts/01_create_schema.sql` — crashes + permits_bps_monthly + census_tracts tables
 - [x] `scripts/02_download_crashes.py` — WI State Patrol crash data loader (Dane County filter)
