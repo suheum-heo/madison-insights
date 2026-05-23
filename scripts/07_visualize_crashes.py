@@ -62,15 +62,15 @@ def chart_monthly():
     """)
     df["month_name"] = df["month"].apply(lambda m: MONTH_NAMES[m - 1])
 
-    # Normalize to average per year (5 years of data)
-    df["avg_crashes"] = (df["crashes"] / 5).round(0).astype(int)
+    num_years = query("SELECT COUNT(DISTINCT source_year) AS n FROM crashes")["n"][0]
+    df["avg_crashes"] = (df["crashes"] / num_years).round(0).astype(int)
 
     colors = [RED if v == df["avg_crashes"].max() else BLUE for v in df["avg_crashes"]]
 
     fig, ax = plt.subplots(figsize=(10, 5))
     bars = ax.bar(df["month_name"], df["avg_crashes"], color=colors, zorder=2)
     ax.bar_label(bars, fmt="%d", padding=3, fontsize=8)
-    ax.set_title("Madison Area Crashes — Average per Month (2018–2022)",
+    ax.set_title("Madison Area Crashes — Average per Month (2018–2025)",
                  fontsize=13, fontweight="bold")
     ax.set_xlabel("Month")
     ax.set_ylabel("Avg Crashes / Year")
