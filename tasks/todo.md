@@ -1,10 +1,8 @@
 # Todo
 
-## Week 3: Insight Extraction & Visualization
+## Next Up
 
-- [ ] `scripts/06_visualize_permits.py` — permits_annual_trend.png, permits_sf_vs_mf.png, permits_top_tracts.png, permits_shrinking_tracts.png
-- [ ] `scripts/07_visualize_crashes.py` — crashes_monthly_seasonality.png, crashes_hourly.png, crashes_dow.png, crashes_top_intersections.png, crashes_map.html
-- [ ] `scripts/08_insights.md` — key findings paragraph per question
+- [ ] `README.md` final update — reflect all Week 3–4 additions (choropleth, drill-down, neighborhood names)
 
 ## Completed
 
@@ -17,3 +15,10 @@
 - [x] Crash data loaded: 50,055 Dane County rows (2018–2022)
 - [x] FRED data loaded: 459 months (1988–2026) of Madison MSA building permits
 - [x] Census ACS loaded: 142 census tracts (2010 + 2022 housing units)
+- [x] `scripts/06_visualize_permits.py` — 4 static charts + choropleth map (permits)
+- [x] `scripts/07_visualize_crashes.py` — 4 static charts + folium heatmap (crashes)
+- [x] `scripts/08_insights.md` — key findings summary
+- [x] `scripts/09_neighborhood_mapping.py` — spatial join: 48 tracts mapped to Madison neighborhood names via TIGER interior points + ray casting
+- [x] `app.py` — Streamlit dashboard: Permits tab (annual trend, SF/MF split, top areas, choropleth) + Crashes tab (seasonality, hourly, severity-weighted hotspots, folium map, intersection drill-down)
+- [x] `README.md` — initial project README (needs update for Week 3–4 additions)
+- [x] Polish pass: removed Korean text, fixed @st.cache_data scope, severity-weighted chart ranking, choropleth 95th-pct color scale, TIGER interior points for neighborhood mapping

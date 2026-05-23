@@ -33,6 +33,52 @@ def run_query(sql: str) -> pd.DataFrame:
     return df
 
 
+@st.cache_data
+def drill_year(on: str, at: str) -> pd.DataFrame:
+    conn = psycopg2.connect(DB_URL)
+    df = pd.read_sql("""
+        SELECT source_year AS year, COUNT(*) AS crashes
+        FROM   crashes
+        WHERE  on_road_name = %s AND at_road_name = %s
+        GROUP  BY 1 ORDER BY 1
+    """, conn, params=(on, at))
+    conn.close()
+    return df
+
+
+@st.cache_data
+def drill_hour(on: str, at: str) -> pd.DataFrame:
+    conn = psycopg2.connect(DB_URL)
+    df = pd.read_sql("""
+        SELECT EXTRACT(HOUR FROM crash_time)::INT AS hour, COUNT(*) AS crashes
+        FROM   crashes
+        WHERE  on_road_name = %s AND at_road_name = %s
+          AND  crash_time IS NOT NULL
+        GROUP  BY 1 ORDER BY 1
+    """, conn, params=(on, at))
+    conn.close()
+    return df
+
+
+@st.cache_data
+def drill_severity(on: str, at: str) -> pd.DataFrame:
+    conn = psycopg2.connect(DB_URL)
+    df = pd.read_sql("""
+        SELECT CASE severity
+                   WHEN '1' THEN 'Fatal'
+                   WHEN '2' THEN 'Injury'
+                   WHEN '3' THEN 'PDO'
+                   ELSE severity
+               END AS severity,
+               COUNT(*) AS crashes
+        FROM   crashes
+        WHERE  on_road_name = %s AND at_road_name = %s
+        GROUP  BY 1 ORDER BY crashes DESC
+    """, conn, params=(on, at))
+    conn.close()
+    return df
+
+
 # ── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.title("🏙️ Madison Insights")
@@ -42,7 +88,7 @@ with st.sidebar:
     st.markdown(
         "- Housing permits peaked at **7,334 units** in 2021\n"
         "- Multifamily now >70% of all new units\n"
-        "- Census Tract 109.03 grew **+148.8%** since 2010\n"
+        "- Madison West (Tract 109.03) grew **+148.8%** since 2010\n"
         "- Top crash hotspot: **S Gammon Rd @ Watts Rd** (106 crashes)\n"
         "- Peak crash hour: **5 PM**; peak month: **October**"
     )
@@ -58,8 +104,7 @@ tab_permits, tab_crashes = st.tabs(["🏗️ Building Permits", "🚗 Traffic Cr
 # TAB 1: BUILDING PERMITS
 # ════════════════════════════════════════════════════════════════════════════
 with tab_permits:
-    st.header("Building Permits — 어느 동네가 빠르게 성장하고 있나?")
-    st.caption("Which neighborhoods are growing fast?")
+    st.header("Building Permits — Which Neighborhoods Are Growing Fast?")
 
     # ── Annual trend ─────────────────────────────────────────────────────────
     df_annual = run_query("""
@@ -252,26 +297,29 @@ with tab_crashes:
     df_hot = run_query(f"""
         SELECT on_road_name || ' @ ' || at_road_name AS intersection,
                COUNT(*) AS crashes,
-               SUM(num_injuries) AS injuries
+               SUM(CASE WHEN severity='1' THEN 5
+                        WHEN severity='2' THEN 2
+                        ELSE 1 END) AS severity_score
         FROM   crashes
         WHERE  on_road_name NOT IN ('', 'NaN', 'nan')
           AND  at_road_name NOT IN ('', 'NaN', 'nan')
         GROUP  BY 1
         HAVING COUNT(*) >= {min_crashes}
-        ORDER  BY crashes DESC
+        ORDER  BY severity_score DESC
         LIMIT  20
     """)
-    df_hot = df_hot.sort_values("crashes")
+    df_hot = df_hot.sort_values("severity_score")
 
     fig6 = px.bar(
-        df_hot, x="crashes", y="intersection", orientation="h",
-        title=f"Top Crash Hotspots (≥{min_crashes} crashes, 2018–2022)",
-        labels={"crashes": "Total Crashes", "intersection": ""},
-        color="crashes",
+        df_hot, x="severity_score", y="intersection", orientation="h",
+        title=f"Top Crash Hotspots — Severity Score (≥{min_crashes} crashes, 2018–2022)",
+        labels={"severity_score": "Severity Score (fatal×5, injury×2, PDO×1)", "intersection": ""},
+        color="severity_score",
         color_continuous_scale=[[0, "#FCA5A5"], [1, "#DC2626"]],
         text="crashes",
+        hover_data={"crashes": True, "severity_score": True},
     )
-    fig6.update_traces(textposition="outside")
+    fig6.update_traces(texttemplate="%{text} crashes", textposition="outside")
     fig6.update_layout(coloraxis_showscale=False, plot_bgcolor="white",
                        xaxis=dict(gridcolor="#e5e7eb"),
                        margin=dict(t=50, b=20), height=max(400, len(df_hot) * 28))
@@ -308,49 +356,6 @@ with tab_crashes:
 
     if selected:
         on_road, at_road = selected.split(" @ ", 1)
-
-        @st.cache_data
-        def drill_year(on: str, at: str) -> pd.DataFrame:
-            conn = psycopg2.connect(DB_URL)
-            df = pd.read_sql("""
-                SELECT source_year AS year, COUNT(*) AS crashes
-                FROM   crashes
-                WHERE  on_road_name = %s AND at_road_name = %s
-                GROUP  BY 1 ORDER BY 1
-            """, conn, params=(on, at))
-            conn.close()
-            return df
-
-        @st.cache_data
-        def drill_hour(on: str, at: str) -> pd.DataFrame:
-            conn = psycopg2.connect(DB_URL)
-            df = pd.read_sql("""
-                SELECT EXTRACT(HOUR FROM crash_time)::INT AS hour, COUNT(*) AS crashes
-                FROM   crashes
-                WHERE  on_road_name = %s AND at_road_name = %s
-                  AND  crash_time IS NOT NULL
-                GROUP  BY 1 ORDER BY 1
-            """, conn, params=(on, at))
-            conn.close()
-            return df
-
-        @st.cache_data
-        def drill_severity(on: str, at: str) -> pd.DataFrame:
-            conn = psycopg2.connect(DB_URL)
-            df = pd.read_sql("""
-                SELECT CASE severity
-                           WHEN '1' THEN 'Fatal'
-                           WHEN '2' THEN 'Injury'
-                           WHEN '3' THEN 'PDO'
-                           ELSE severity
-                       END AS severity,
-                       COUNT(*) AS crashes
-                FROM   crashes
-                WHERE  on_road_name = %s AND at_road_name = %s
-                GROUP  BY 1 ORDER BY crashes DESC
-            """, conn, params=(on, at))
-            conn.close()
-            return df
 
         dc1, dc2, dc3 = st.columns(3)
 
