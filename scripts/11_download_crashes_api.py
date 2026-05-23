@@ -148,6 +148,22 @@ def get_crash_props(crash_id: str) -> dict | None:
 
 # ── Normalization ─────────────────────────────────────────────────────────────
 
+HWY_PREFIX = {"IH": "I-", "USH": "US-", "STH": "WI-", "CTH": "CTH "}
+
+
+def on_road_from_attrs(attrs: dict) -> str:
+    """Return ONSTR if present; otherwise construct from ONHWYSYS + ONHWY."""
+    onstr = (clean(attrs.get("ONSTR")) or "").strip()
+    if onstr:
+        return onstr
+    sys_ = (clean(attrs.get("ONHWYSYS")) or "").strip().upper()
+    num = (clean(attrs.get("ONHWY")) or "").strip().lstrip("0")
+    if not num:
+        return ""
+    prefix = HWY_PREFIX.get(sys_, (sys_ + " ") if sys_ else "")
+    return (prefix + num).strip()
+
+
 def normalize_row(attrs: dict, year: int) -> tuple:
     """Map API attributes to the upsert tuple column order.
 
@@ -164,7 +180,7 @@ def normalize_row(attrs: dict, year: int) -> tuple:
         to_time(attrs.get("CRSHTIME")),
         to_int(attrs.get("CNTYCODE")) or DANE_COUNTY_CODE,
         (clean(attrs.get("MUNINAME")) or "").strip().title(),
-        (clean(attrs.get("ONSTR")) or "").strip(),
+        on_road_from_attrs(attrs),
         (clean(attrs.get("ATSTR")) or "").strip(),
         to_float(attrs.get("LATDECDG")),
         to_float(attrs.get("LONDECDG")),
