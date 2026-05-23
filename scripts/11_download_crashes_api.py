@@ -32,7 +32,7 @@ CRASH_PROPS_URL = (
 )
 DANE_COUNTY_STR = "Dane - 13"    # format expected by Counties parameter
 DANE_COUNTY_CODE = 13
-TARGET_YEARS = [2023, 2024]
+TARGET_YEARS = [2023, 2024, 2025]
 DB_URL = "dbname=madison_analysis"
 MAX_WORKERS = 20
 
