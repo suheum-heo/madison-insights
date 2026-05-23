@@ -92,7 +92,7 @@ def load_fred_to_db(conn, series_id: str, label: str, rows: list[tuple]):
 
 # ─── Census ACS ──────────────────────────────────────────────────────────────
 
-def fetch_acs_tracts(api_key: str, year: int = 2023) -> list[dict]:
+def fetch_acs_tracts(api_key: str, year: int = 2024) -> list[dict]:
     """
     Fetch housing unit counts (B25001_001E) by census tract for Dane County, WI.
     Requires a free Census API key from api.census.gov/data/key_signup.html
@@ -123,14 +123,14 @@ def fetch_acs_tracts(api_key: str, year: int = 2023) -> list[dict]:
     return rows
 
 
-def load_acs_tracts(conn, rows_2010: list[dict], rows_2023: list[dict]):
+def load_acs_tracts(conn, rows_2010: list[dict], rows_recent: list[dict]):
     cur = conn.cursor()
     units_2010 = {r["geoid"]: r["units"] for r in rows_2010}
-    units_2023 = {r["geoid"]: r["units"] for r in rows_2023}
+    units_recent = {r["geoid"]: r["units"] for r in rows_recent}
 
-    all_geoids = set(units_2010) | set(units_2023)
+    all_geoids = set(units_2010) | set(units_recent)
     data = [
-        (geoid, units_2010.get(geoid), units_2023.get(geoid))
+        (geoid, units_2010.get(geoid), units_recent.get(geoid))
         for geoid in all_geoids
     ]
     execute_values(cur, """
@@ -186,9 +186,9 @@ def main():
         print("\n── Census ACS Tract-Level Housing Units ──")
         try:
             rows_2010 = fetch_acs_tracts(census_key, year=2010)
-            rows_2023 = fetch_acs_tracts(census_key, year=2023)
-            print(f"  2010: {len(rows_2010)} tracts | 2023: {len(rows_2023)} tracts")
-            load_acs_tracts(conn, rows_2010, rows_2023)
+            rows_recent = fetch_acs_tracts(census_key)
+            print(f"  2010: {len(rows_2010)} tracts | {rows_recent[0]['year']}: {len(rows_recent)} tracts")
+            load_acs_tracts(conn, rows_2010, rows_recent)
         except Exception as e:
             print(f"  Census ACS failed: {e}")
     else:
